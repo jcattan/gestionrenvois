@@ -1,52 +1,61 @@
 <?php 
-/* $Id:$ */
+if (!defined('FREEPBX_IS_AUTH')) { die('No direct script access allowed'); }
 
-//todo dbGet(SPEEDDIALNUMBER=AMPUSER/${ARG2}/speeddials/${ARG1})
-//todo User Logon
-
-//used to get module information
 function gestionrenvois_getmodulevalue($id) {
-	global $db;
-	$sql = "select value from gestionrenvois_module where id = '$id'";
-	$results = $db->getAll($sql);
-	if(DB::IsError($results)) 
-		$results = null;
-	return isset($results)?$results[0][0]:null;
+    global $db;
+    $sql = "select value from gestionrenvois_module where id = ?";
+    $results = $db->getAll($sql, array($id)); // Utilisation de requêtes préparées
+    if(DB::IsError($results)) 
+        $results = null;
+    return isset($results[0][0]) ? $results[0][0] : null;
 }
 
-//used to get module information
-function gestionrenvois_setmodulevalue($id,$value) {
-	global $db;
-	$sql = "update gestionrenvois_module set value = '$value' where id = '$id'";
-	$db->query($sql);
+function gestionrenvois_setmodulevalue($id, $value) {
+    global $db;
+    $sql = "update gestionrenvois_module set value = ? where id = ?";
+    $db->query($sql, array($value, $id)); // Utilisation de requêtes préparées
 }
 
-//after dialplan is created
 function gestionrenvois_hookGet_config($engine) {
-	global $db;
-	global $ext;
-	switch($engine) {
-		case 'asterisk':
-
-		break;
-	}
+    global $db;
+    global $ext;
+    switch($engine) {
+        case 'asterisk':
+            // Implementation si nécessaire
+        break;
+    }
 }
 
-//
 function gestionrenvois_getextensions() {
-	global $db;
-		$tmparray = gestionrenvois_getcoreuserslist(true);
-	return $tmparray;
+    $tmparray = gestionrenvois_getcoreuserslist(true);
+    return $tmparray ?? array();
 }
 
-//
 function gestionrenvois_getfeatureslist($exten) {
-	global $db;
-	$sql = "SELECT description, if(customcode is null, defaultcode, customcode) as featurecode, enabled, gestionrenvois_features_list.modulename, gestionrenvois_features_list.featurename, type, dbfamily, dbkey, value_on, value_off, display_on, display_off FROM gestionrenvois_features_list INNER JOIN featurecodes ON gestionrenvois_features_list.modulename = featurecodes.modulename AND gestionrenvois_features_list.featurename = featurecodes.featurename order by description";
-	$results = $db->getAll($sql);
-	if(DB::IsError($results)) 
-		$results = null;
-	foreach ($results as $val) {
+    global $db;
+    $sql = "SELECT description, 
+            COALESCE(customcode, defaultcode) as featurecode,
+            enabled, 
+            gestionrenvois_features_list.modulename,
+            gestionrenvois_features_list.featurename,
+            type,
+            dbfamily,
+            dbkey,
+            value_on,
+            value_off,
+            display_on,
+            display_off
+            FROM gestionrenvois_features_list 
+            INNER JOIN featurecodes 
+            ON gestionrenvois_features_list.modulename = featurecodes.modulename 
+            AND gestionrenvois_features_list.featurename = featurecodes.featurename";
+    
+    $results = $db->getAll($sql);
+    if(DB::IsError($results)) 
+        return array();
+        
+    $tmparray = array();
+    	foreach ($results as $val) {
 			if ($exten) {		
 				$state = gestionrenvois_getfeaturestate ($exten, $val[6], $val[7]);
 			}
@@ -60,14 +69,25 @@ function gestionrenvois_getfeatureslist($exten) {
 }
 
 function gestionrenvois_getextenfeaturesstates($extenlist) {
-	global $db;
-		$sql = "SELECT type, dbfamily, dbkey, value_on, value_off, extenlistdisplay_on, extenlistdisplay_off FROM gestionrenvois_features_list INNER JOIN featurecodes ON gestionrenvois_features_list.modulename = featurecodes.modulename AND gestionrenvois_features_list.featurename = featurecodes.featurename where ((extenlistdisplay_on is not null and extenlistdisplay_on <> '') or (extenlistdisplay_off is not null and extenlistdisplay_off <> '')) and enabled = true order by description";
-		$results = $db->getAll($sql);
-		if(DB::IsError($results)) {
-			$results = null;
-		}
-		else
-		{
+    global $db;
+    if (!is_array($extenlist)) {
+        return array();
+    }
+    
+    $sql = "SELECT type, dbfamily, dbkey, value_on, value_off, extenlistdisplay_on, extenlistdisplay_off 
+            FROM gestionrenvois_features_list 
+            INNER JOIN featurecodes 
+            ON gestionrenvois_features_list.modulename = featurecodes.modulename 
+            AND gestionrenvois_features_list.featurename = featurecodes.featurename";
+    
+    $results = $db->getAll($sql);
+    if(DB::IsError($results)) {
+        return $extenlist;
+    }
+
+    $tmparray = array();
+    $tmparray2 = array();
+
 			foreach ($results as $val) {
 				$featurestatus = $val;
 				foreach ($extenlist as $exten) {
@@ -83,17 +103,17 @@ function gestionrenvois_getextenfeaturesstates($extenlist) {
 					$value_off = str_replace('{EXTEN}',$exten[0],$featurestatus[4]);
 					$display_on = $featurestatus[5];
 					$display_off = $featurestatus[6];
-					switch ($featuretype) {
-						case 'EXTEN':
-							if (($state == '') || ($state == $value_off)) {
-								$display = $display_off;
-							}
-							elseif ($state == $value_on) {
-								$display = str_replace('{VALUE}',$state,$display_on);
-							}
-							else
-							{
-								$display = str_replace('{VALUE}',$state,$display_on);
+            
+            
+            switch ($featuretype) {
+                case 'EXTEN':
+
+                    if (empty($state) || $state == $value_off) {
+                        $display = $display_off;
+                    } elseif ($state == $value_on) {
+                        $display = str_replace('{VALUE}', $state, $display_on);
+                    } else {
+                        $display = str_replace('{VALUE}', $state, $display_on);
 							}
 						break;
 						case 'ONOFF':
@@ -109,56 +129,55 @@ function gestionrenvois_getextenfeaturesstates($extenlist) {
 							}
 						break;
 					}
-					if (isset($display) && (!$display =='')) {
-						$tmparray[$exten[0]][] = $display;
-					}
-				}
-			}
-			foreach ($extenlist as $exten) {
-				$extendisplay = '';
-				if (is_array($tmparray[$exten[0]])) {
-					foreach ($tmparray[$exten[0]] as $val) {
-						$extendisplay = ($extendisplay =='')?$val:$extendisplay.'&nbsp;'.$val;
-					}
-				}
-				$extendisplay = ($extendisplay =='')?$exten[1]:$extendisplay.'<BR>'.$exten[1];
-				$tmparray2[] = array($exten[0], $extendisplay);
-			}
-		}
-	return isset($tmparray2)?$tmparray2:$extenlist;
+            if (!empty($display)) {
+                $tmparray[$exten[0]][] = $display;
+            }
+        }
+    }
+
+    foreach ($extenlist as $exten) {
+        if (!isset($exten[0])) continue;
+        
+        $extendisplay = '';
+        if (isset($tmparray[$exten[0]]) && is_array($tmparray[$exten[0]])) {
+            $extendisplay = implode('&nbsp;', $tmparray[$exten[0]]);
+        }
+        $extendisplay = empty($extendisplay) ? $exten[1] : $extendisplay.'<BR>'.$exten[1];
+        $tmparray2[] = array($exten[0], $extendisplay);
+    }
+
+    return !empty($tmparray2) ? $tmparray2 : $extenlist;
 }
 
-function gestionrenvois_getfeaturestate ($exten, $family, $key) {
-	global $astman;
-	$family = str_replace('{EXTEN}',$exten,$family);
-	$key = str_replace('{EXTEN}',$exten,$key);
-	if ($astman) {
-		$ret = $astman->database_get($family,$key);
-	}
-	return isset($ret)?$ret:'';
+function gestionrenvois_getfeaturestate($exten, $family, $key) {
+    global $astman;
+    if (!$astman) {
+        return '';
+    }
+    
+    $family = str_replace('{EXTEN}', $exten, $family);
+    $key = str_replace('{EXTEN}', $exten, $key);
+    
+    $ret = $astman->database_get($family, $key);
+    return $ret !== false ? $ret : '';
 }
 
 function gestionrenvois_getcoreuserslist($showfeature = false) {
-//probably safer to assume that the function will always be there
-//than to assume that the data structure will always be the same. - hence I piggyback!
-	$tmparray = core_users_list();
-	if ($tmparray && $showfeature) {
-		$tmparray = gestionrenvois_getextenfeaturesstates($tmparray);
-	}
-	return $tmparray;
+    $tmparray = core_users_list();
+    if ($tmparray && $showfeature) {
+        $tmparray = gestionrenvois_getextenfeaturesstates($tmparray);
+    }
+    return $tmparray ?? array();
 }
 
-//we have no config!
 function gestionrenvois_get_config($engine) {
-  global $ext;
-  switch($engine) {
-    case 'asterisk':
-    break;
-  }
+    global $ext;
+    switch($engine) {
+        case 'asterisk':
+            // Implementation si nécessaire
+        break;
+    }
 }
-
-
-//---------------------------------------------
 
 //gestionrenvois page helper
 //we are using gui styles so there is very little on the page
@@ -173,7 +192,6 @@ global $currentcomponent;
 	}
 }
 
-//actually render the gestionrenvois page
 function gestionrenvois_configpageload() {
 global $currentcomponent;
 	$extdisplay = isset($_REQUEST['extdisplay'])?$_REQUEST['extdisplay']:null;
@@ -258,39 +276,34 @@ global $currentcomponent;
        $currentcomponent->addguielem('_top', new gui_hidden('action', ($extdisplay ? 'edit' : 'add')));
 }
 
-//handle gestionrenvoiss page submit button
 function gestionrenvois_configprocess() {
-	$action= isset($_REQUEST['action'])?$_REQUEST['action']:null;
-	$ext= isset($_REQUEST['extdisplay'])?$_REQUEST['extdisplay']:null;
-	$features = isset($_REQUEST['features'])?$_REQUEST['features']:null;
-	global $astman;
-//addslashes	
-	switch ($action) {
-	case 'add':
-//you can't add extensions here!
-	break;
-	case 'edit':
-		foreach ($features as $key=>$val) {
-			$famkey = explode('|',$key,2);
-			if (is_array($famkey)) {
-				$family = $famkey[0];
-				$key = $famkey[1];
-				if (isset($val) && (!$val == '')) {
-					if ($val == '{DELETE}') {
-						$astman->database_del($family,$key);
-					}
-					else
-					{
-						$astman->database_put($family,$key,$val);				
-					}
-				}
-			}
-		}
-	break;
-	case 'del':
-//you can't delete extensions here
-	break;
-	}
+    $action = $_REQUEST['action'] ?? null;
+    $ext = $_REQUEST['extdisplay'] ?? null;
+    $features = $_REQUEST['features'] ?? array();
+    
+    global $astman;
+    if (!$astman) {
+        return;
+    }
+
+    switch ($action) {
+        case 'edit':
+            foreach ($features as $key => $val) {
+                $famkey = explode('|', $key, 2);
+                if (count($famkey) === 2) {
+                    $family = $famkey[0];
+                    $key = $famkey[1];
+                    if (!empty($val)) {
+                        if ($val === '{DELETE}') {
+                            $astman->database_del($family, $key);
+                        } else {
+                            $astman->database_put($family, $key, $val);              
+                        }
+                    }
+                }
+            }
+            break;
+    }
 }
 
 //update a single feature from the gestionrenvois page

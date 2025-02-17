@@ -1,24 +1,11 @@
-<?php /* $Id: page.gestionrenvois.php $ */
-//
-//This program is free software; you can redistribute it and/or
-//modify it under the terms of the GNU General Public License
-//as published by the Free Software Foundation; either version 2
-//of the License, or (at your option) any later version.
-//
-//This program is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
+<?php
+if (!defined('FREEPBX_IS_AUTH')) { die('No direct script access allowed'); }
 
-$dispnum = 'gestionrenvois'; //used for switch on config.php
+global $currentcomponent;
 
-?>
-
-
-<div class="rnav">
-<?php 
+$dispnum = 'gestionrenvois';
 $contexts = gestionrenvois_getextensions();
-drawListMenu($contexts, $skip, $type, $display, $extdisplay, _("Extension"));
-?>
-</div>
 
+echo '<div class="rnav">';
+drawListMenu($contexts, $skip, $type, $display, $extdisplay, _("Extension"));
+echo '</div>';
