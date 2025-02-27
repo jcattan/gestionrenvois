@@ -1,14 +1,13 @@
 <module>
 	<rawname>gestionrenvois</rawname>
 	<name>Gestion Renvois</name>
-	<version>17.0.1</version>
+	<version>15.0.1</version>
 	<type>tool</type>
   <category>Settings</category>
   	<publisher>J.Cattan</publisher>
 	<description>
 		Gestion des renvois des postes via Freepbx.
 	</description>
-	<license>GPL</license>
 	<menuitems>
 		<gestionrenvois>Gestion Renvois</gestionrenvois>
 	</menuitems>
@@ -17,11 +16,7 @@
                 <module>core</module>
                 <module>featurecodeadmin</module>
         </depends>
-	<supported>
-        <version>17.0</version>
-	</supported>
         <changelog>
-        *17.0.1* Compatibilite FreePBX 17 et PHP 8
 		*15.0.1* Maj FreePBX 15
 		*14.0.1JC* Maj pour FPBX 14
 		*0.0.3JC* Compatible IPActuacom by JCattan
