@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS `gestionrenvois_module` (
 
 INSERT IGNORE INTO `gestionrenvois_module` VALUES ('modulerawname', 'gestionrenvois');
 INSERT IGNORE INTO `gestionrenvois_module` VALUES ('moduledisplayname', 'Gestion Renvois');
-INSERT IGNORE INTO `gestionrenvois_module` VALUES ('moduleversion', '0.0.1');
+INSERT IGNORE INTO `gestionrenvois_module` VALUES ('moduleversion', '17.0.1');
 
-UPDATE IGNORE `gestionrenvois_module` SET `value` = '15.0.1' where `id` = 'moduleversion';
+UPDATE IGNORE `gestionrenvois_module` SET `value` = '17.0.1' where `id` = 'moduleversion';
 
